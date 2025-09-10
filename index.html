@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Attendance Graph</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>📊 Attendance Chart</h2>
+  <canvas id="attendanceChart" width="600" height="300"></canvas>
+
+  <script type="module">
+    // 🔥 Firebase config
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadAttendance() {
+      const snapshot = await getDocs(collection(db, "attendance/2025-09-06/students"));
+      const students = snapshot.docs.map(doc => doc.data());
+
+      const subjects = ["MCC","MCC_1","MPMC","CLOUD","CLOUD_1","ADHOC","ME"];
+      const counts = {};
+      subjects.forEach(subj => counts[subj] = {present: 0, total: 0});
+
+      students.forEach(stu => {
+        subjects.forEach(subj => {
+          if (stu[subj]) {
+            counts[subj].total++;
+            if (stu[subj].startsWith("Present")) {
+              counts[subj].present++;
+            }
+          }
+        });
+      });
+
+      const labels = subjects;
+      const data = subjects.map(s => 
+        counts[s].total > 0 ? (counts[s].present / counts[s].total) * 100 : 0
+      );
+
+      // 🎨 Chart.js
+      new Chart(document.getElementById("attendanceChart"), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Attendance %',
+            data: data,
+            backgroundColor: "rgba(54, 162, 235, 0.6)"
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
+
+    loadAttendance();
+  </script>
+</body>
+</html>
